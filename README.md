@@ -105,4 +105,14 @@ django-admin startproject <object_name>
    Quit the server with CONTROL-C
    ```
 
+   访问`http://127.0.0.1:8000/` 会看到
+
+   ```
+   正常工作了！
+   祝贺你的第一个由Django驱动的页面。
+   接下来运行你的第一个程序 python manage.py startapp [app_label].
+   
+   您看到此消息是由于Django的配置文件设置了 DEBUG = True，您还没有配置任何路由URL。开始工作吧。
+   ```
+
    
