@@ -268,3 +268,53 @@ python manage.py migrate
   ```
 
   
+
+## 首页视图
+
+Hello 视图函数
+
+1.绑定URL与视图函数
+
+在`blog` 应用下创建一个`urls.py`文件，写入如下代码
+
+```python
+from django.conf.urls import url
+from blog import views
+
+urlpatterns = [
+    url(r"^$",views.index,name="index"),
+]
+```
+
+<!--绑定关系的写法是把网址和对应的处理函数作为参数传给 url 函数（ 第一个参数是网
+址，第二个参数是处理函数），另外我们还传递了另外一个参数 name，这个参数的值
+将作为处理函数 index 的别名，一般设置为视图函数名-->
+
+将应用的url配置到项目url
+
+编辑`【blogproject/blogproject/urls.py】`将blog下的url进行导入
+
+```python
+from django.conf.urls import url,include
+from django.contrib import admin
+
+urlpatterns = [
+    url(r'^admin/', admin.site.urls),
+    url(r"blog/",include("blog.urls")),
+]
+```
+
+2.编写视图函数
+
+编辑`【blogproject/blog/views.py】`文件，定义index函数
+
+```python
+from django.shortcuts import render
+from django.http import HttpResponse
+# Create your views here.
+
+def index(request):
+    return HttpResponse("欢迎来到首页！")
+```
+
+运行项目，访问http://127.0.0.1:8000/blog/查看结果
