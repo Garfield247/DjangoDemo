@@ -508,3 +508,21 @@ admin.site.register(Tag)
 了 Django Admin 后台登录页面，输入刚才创建的管理员账户密码就可以登录到后台
 了
 
+定制 Admin 后台
+在 admin post 列表页面，我们只看到了文章的标题，但是我们希望它显示更加详细
+的信息，这需要我们来定制 Admin 了，在 admin.py 添加如下代码：
+【blog/admin.py】
+
+```python
+from django.contrib import admin
+from .models import Post, Category, Tag
+class PostAdmin(admin.ModelAdmin):
+list_display = ['title', 'created_time', 'modified_time', 'category', 'author']
+
+#把新增的 PostAdmin 也注册进来
+
+admin.site.register(Post, PostAdmin)
+admin.site.register(Category)
+admin.site.register(Tag)
+```
+
