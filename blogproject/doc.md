@@ -318,3 +318,193 @@ def index(request):
 ```
 
 运行项目，访问http://127.0.0.1:8000/blog/查看结果
+
+3.`Django`模板系统
+
+在项目根目录创建`templates`文件夹，再在该目录（`【blogproject/templates】`）下创建`blog`文件夹
+
+```
+mkdir ./templates
+mkdir ./templates
+```
+
+创建`【blogproject/templates\blog\index.html】` 文件，并写入下面的代码：
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>{{ title }}</title>
+</head>
+<body>
+<h1>{{ welcome }}</h1>
+</body>
+</html>
+```
+
+在`【blogproject/blogproject/settings.py】`中配置模板路径
+
+```python
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [os.path.join(BASE_DIR,'templates')],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
+```
+
+修改`【blogproject/blog/views.py】`下的`index`视图函数
+
+```python
+from django.shortcuts import render
+from django.http import HttpResponse
+
+# Create your views here.
+
+def index(request):
+    # return HttpResponse("欢迎来到首页！")
+    return render(request,'blog/index.html',context={'title':"我的博客首页",'welcome':"欢迎访问我的博客首页"})
+```
+
+运行项目，访问http://127.0.0.1:8000/blog/查看结果
+
+
+
+## 真正的首页视图
+
+1.修改`【blogproject/blog/views.py】`下的`index`视图函数
+
+```python
+from django.shortcuts import render
+from django.http import HttpResponse
+from .models import Post
+# Create your views here.
+
+def index(request):
+    # return HttpResponse("欢迎来到首页！")
+    # return render(request,'blog/index.html',context={'title':"我的博客首页",'welcome':"欢迎访问我的博客首页"})
+    post_list = Post.objects.all().order_by("-created_time")
+    return render(request,'blog/index.html',context={'post_list':post_list})
+```
+
+2.处理静态文件
+
+先在 `blog` 应用下建立一个 `static` 文件夹，再在 `static\` 目录下建立一个 `blog` 文件夹。
+
+把下博客模板中的`html`文件拷贝到templates文件夹下
+
+ `css` 和 `js` 文件夹连同里面的全部文件一同拷贝到`static\` 目录下建立一个 `blog` 文件夹
+
+修改`【templates/blog/index.html】`文件引入静态文件
+
+```html
+<head>
+    <title>Black &amp; White</title>
+
+    <!-- meta -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- css -->
+    <!--<link rel="stylesheet" href="css/bootstrap.min.css">-->
+    <link rel="stylesheet" href="{% static 'blog/css/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="http://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
+    <!--<link rel="stylesheet" href="css/pace.css">-->
+    <link rel="stylesheet" href="{% static 'blog/css/pace.css' %}">
+    <!--<link rel="stylesheet" href="css/custom.css">-->
+    <link rel="stylesheet" href="{% static 'blog/css/custom.css' %}">
+
+    <!-- js -->
+    <!--<script src="js/jquery-2.1.3.min.js"></script>-->
+    <script src="{% static 'blog/js/jquery-2.1.3.min.js' %}"></script>
+    <!--<script src="js/bootstrap.min.js"></script>-->
+    <script src="{% static 'blog/js/bootstrap.min.js' %}"></script>
+    <!--<script src="js/pace.min.js"></script>-->
+    <script src="{% static 'blog/js/pace.min.js' %}"></script>
+    <!--<script src="js/modernizr.custom.js"></script>-->
+    <script src="{% static 'blog/js/modernizr.custom.js' %}"></script>
+</head>
+
+```
+文章列表
+```html
+<main class="col-md-8">
+    {% for post in post_list %}
+    <article class="post post-{{ post.pk }}">
+        <header class="entry-header">
+            <h1 class="entry-title">
+                <a href="single.html">{{ post.title }}</a>
+            </h1>
+            <div class="entry-meta">
+                <span class="post-category"><a href="#">{{ post.category.name }}</a></span>
+                <span class="post-date"><a href="#"><time class="entry-date"
+                                                          datetime="{{ post.created_time }}">{{ post.created_time }}</time></a></span>
+                <span class="post-author"><a href="#">{{ post.author }}</a></span>
+                <span class="comments-link"><a href="#">4 评论</a></span>
+                <span class="views-count"><a href="#">588 阅读</a></span>
+            </div>
+        </header>
+        <div class="entry-content clearfix">
+            <p>{{ post.excerpt }}</p>
+            <div class="read-more cl-effect-14">
+                <a href="#" class="more-link">继续阅读 <span class="meta-nav">→</span></a>
+            </div>
+        </div>
+    </article>
+    {% empty %}
+    <div class="no-post">暂时还没有发布的文章！ </div>
+    {% endfor %}
+
+    <!-- 简单分页效果
+<div class="pagination-simple">
+<a href="#">上一页</a>
+<span class="current">第 6 页 / 共 11 页</span>
+<a href="#">下一页</a>
+</div>
+-->
+    <div class="pagination">
+        <ul>
+            <li><a href="">1</a></li>
+            <li><a href="">...</a></li>
+            <li><a href="">4</a></li>
+            <li><a href="">5</a></li>
+            <li class="current"><a href="">6</a></li>
+            <li><a href="">7</a></li>
+            <li><a href="">8</a></li>
+            <li><a href="">...</a></li>
+            <li><a href="">11</a></li>
+        </ul>
+    </div>
+</main>
+```
+
+## Admin 后台发布文章
+
+1.在 Admin 后台注册模型
+	要在后台注册我们自己创建的几个模型（类似于 Flask-admin 的 ModelView） ，这
+样 Django Admin 才能知道它们的存在，注册非常简单，只需要在 blog\admin.py
+中加入下面的代码：
+【blog/admin.py】
+
+```python
+from django.contrib import admin
+from .models import Post, Category, Tag
+admin.site.register(Post)
+admin.site.register(Category)
+admin.site.register(Tag)
+```
+
+激活虚拟环境，运行开发服务器，访问 http://127.0.0.1:8000/admin/ ，就进入了到
+了 Django Admin 后台登录页面，输入刚才创建的管理员账户密码就可以登录到后台
+了
+
