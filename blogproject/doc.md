@@ -967,4 +967,53 @@ def detail(request,pk):
   {% endblock toc %}
   ```
 
+  **Done！**
+
+  ## 添加markdown支持
+
+  1.安装Markdown
+
+  ```shell
+  pip install markdown
+  ```
+
+  2.在detail中渲染markdown
+
+  ```python
+  def detail(request,pk):
+      post = get_object_or_404(Post,pk=pk)
+      post.body = markdown(post.body,
+                           extensions = [
+                               'markdown.extensions.extra',
+                               'markdown.extensions.codehilite',
+                               'markdown.extensions.toc',
+                           ]
+                           )
+      return render(request,'blog/detail.html',context={'post':post})
+  ```
+
+  3.在模板中使用safe防止markdown转义
+
+  ```html
+  {{ post.body }}   >>>    {{ post.body|safe }}
+  ```
+
+  <!--safe 是 Django 模板系统中的过滤器（ Filter），可以简单地把它看成是一种函数，其作用是作用于模板变量，将模板变量的值变为经过滤器处理过后的值。例如这里{{ post.body|safe }}，本来 {{ post.body }} 经模板系统渲染后应该显示 body 本身的值，但是在后面加上 safe 过滤器后，渲染的值不再是 body 本身的值，而是由 safe函数处理后返回的值。过滤器的用法是在模板变量后加一个 | 管道符号，再加上过滤器的名称。可以连续使用多个过滤器，例如 {{var|filter1|filter2 }}。-->
+
+  4.代码高亮
+
+  - 安装Pygments
+
+    ```shell
+    pip install Pygments
+    ```
+
+  - 在`base.html`引入样式文件
+
+    ```
+    <link rel="stylesheet" href="{% static 'blog/css/highlights/github.css' %}">
+    ```
+
+  **Done!**
+
   
