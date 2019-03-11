@@ -1008,12 +1008,283 @@ def detail(request,pk):
     pip install Pygments
     ```
 
-  - 在`base.html`引入样式文件
+  - 在`base.html`<!--引入样式文件-->
 
     ```
     <link rel="stylesheet" href="{% static 'blog/css/highlights/github.css' %}">
     ```
 
   **Done!**
+
+  ## 使用自定义标签模板
+
+  1.编写模板标签代码
+
+  在我们的 `blog` 应用下创建一个 `templatetags` 文件夹。然后在这个文件夹下创建
+  一个 `__init__.py` 文件，使这个文件夹成为一个 Python 包，之后在 `templatetags\` 目
+  录下创建一个 `blog_tags.py` 文件
+
+  ```python
+  from django import template
+  from ..models import Post,Category
+  
+  register = template.Library()
+  
+  # 最新文章模板标签
+  @register.simple_tag
+  def get_recent_posts(num=5):
+      return Post.objects.all().order_by('-created_time')[:num]
+  
+  # 归档模板标签
+  @register.simple_tag
+  def archives():
+      return Post.objects.dates('created_time','month',order='DESC')
+  
+  # 分类模板标签
+  @register.simple_tag
+  def get_categories():
+      return Category.objects.all()
+  
+  ```
+
+  <!--首先导入 template 这个模块，然后实例化了一个 template.Library 类，并将
+  函数 get_recent_posts 装饰为 register.simple_tag。这样就可以在模板中使用语法 {%
+  get_recent_posts %} 调用这个函数了（ 自定义模板标签的步骤） 。-->
+
+  <!--dates 方法会返回一个列表，列表中的元素为每一篇文章（ Post）的创建时间，
+  且是 Python 的 date 对象，精确到月份，降序排列。 接受的三个参数值表明了这些含
+  义，一个是 created_time ，即 Post 的创建时间， month 是精度， order='DESC' 表明降序
+  排列（即离当前越近的时间越排在前面）。-->
+
+  2.使用自定义的模板标签
+
+  打开 `base.html`，为了使用模板标签，我们首先需要在模板中导入存放这些模板标签的模块，这里是`blog_tags.py` 模块。当时我们为了使用 static 模板标签时曾经导入过 `{% load staticfiles %}`，这次在 `{% load staticfiles %}` 下再导入 `blog_tags`
+
+  ```python
+  {% load staticfiles %}
+  {% load blog_tags %}
+  <!DOCTYPE html>
+  <html>
+  <head>
+      <title>Black &amp; White</title>
+  
+      <!-- meta -->
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+      <!-- css -->
+      <!--<link rel="stylesheet" href="css/bootstrap.min.css">-->
+      <link rel="stylesheet" href="{% static 'blog/css/bootstrap.min.css' %}">
+      <link rel="stylesheet" href="http://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
+      <!--<link rel="stylesheet" href="css/pace.css">-->
+      <link rel="stylesheet" href="{% static 'blog/css/pace.css' %}">
+      <!--<link rel="stylesheet" href="css/custom.css">-->
+      <link rel="stylesheet" href="{% static 'blog/css/custom.css' %}">
+  
+      <link rel="stylesheet" href="{% static 'blog/css/highlights/github.css' %}">
+  
+      <!-- js -->
+      <!--<script src="js/jquery-2.1.3.min.js"></script>-->
+      <script src="{% static 'blog/js/jquery-2.1.3.min.js' %}"></script>
+      <!--<script src="js/bootstrap.min.js"></script>-->
+      <script src="{% static 'blog/js/bootstrap.min.js' %}"></script>
+      <!--<script src="js/pace.min.js"></script>-->
+      <script src="{% static 'blog/js/pace.min.js' %}"></script>
+      <!--<script src="js/modernizr.custom.js"></script>-->
+      <script src="{% static 'blog/js/modernizr.custom.js' %}"></script>
+  </head>
+  
+  <body>
+  <div class="container">
+      <header id="site-header">
+          <div class="row">
+              <div class="col-md-4 col-sm-5 col-xs-8">
+                  <div class="logo">
+                      <h1><a href="index.html"><b>Black</b> &amp; White</a></h1>
+                  </div>
+              </div><!-- col-md-4 -->
+              <div class="col-md-8 col-sm-7 col-xs-4">
+                  <nav class="main-nav" role="navigation">
+                      <div class="navbar-header">
+                          <button type="button" id="trigger-overlay" class="navbar-toggle">
+                              <span class="ion-navicon"></span>
+                          </button>
+                      </div>
+  
+                      <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                          <ul class="nav navbar-nav navbar-right">
+                              <li class="cl-effect-11"><a href="index.html" data-hover="首页">首页</a></li>
+                              <li class="cl-effect-11"><a href="full-width.html" data-hover="博客">博客</a></li>
+                              <li class="cl-effect-11"><a href="about.html" data-hover="关于">关于</a></li>
+                              <li class="cl-effect-11"><a href="contact.html" data-hover="联系">联系</a></li>
+                          </ul>
+                      </div><!-- /.navbar-collapse -->
+                  </nav>
+                  <div id="header-search-box">
+                      <a id="search-menu" href="#"><span id="search-icon" class="ion-ios-search-strong"></span></a>
+                      <div id="search-form" class="search-form">
+                          <form role="search" method="get" id="searchform" action="#">
+                              <input type="search" placeholder="搜索" required>
+                              <button type="submit"><span class="ion-ios-search-strong"></span></button>
+                          </form>
+                      </div>
+                  </div>
+              </div><!-- col-md-8 -->
+          </div>
+      </header>
+  </div>
+  <div class="copyrights">Collect from <a href="http://www.cssmoban.com/">网页模板</a></div>
+  <div class="copyrights">Modified by <a href="http://zmrenwu.com/">追梦人物的博客</a></div>
+  
+  <div class="content-body">
+      <div class="container">
+          <div class="row">
+              <main class="col-md-8">
+                  {% block main %}
+                  {% endblock main %}
+              </main>
+              <aside class="col-md-4">
+                  {% block toc %}
+                  {% endblock toc %}
+                  <div class="widget widget-recent-posts">
+                      <h3 class="widget-title">最新文章</h3>
+                      {% get_recent_posts as recent_post_list %}
+                      <ul>
+                          {% for post in recent_post_list %}
+                          <li>
+                              <a href="{{ post.get_absolute_url }}">{{ post.title }}</a>
+                          </li>
+                          {% empty %}
+                          暂无文章
+                          {% endfor %}
+                      </ul>
+                  </div>
+                  <div class="widget widget-archives">
+                      <h3 class="widget-title">归档</h3>
+                      {% archives as date_list %}
+                      <ul>
+                          {% for date in date_list %}
+                          <li>
+                              <a href="#">{{ date.year }} 年 {{ date.month }} 月</a>
+                          </li>
+                          {% empty %}
+                          暂无归档！
+                          {% endfor %}
+                      </ul>
+                  </div>
+  
+                  <div class="widget widget-category">
+                      <h3 class="widget-title">分类</h3>
+                      {% get_categories as category_list %}
+                      <ul>
+                          {% for category in category_list %}
+                          <li>
+                              <a href="#">{{ category.name }} <span class="post-count">(13)</span></a>
+                          </li>
+                          {% empty %}
+                          暂无分类！
+                          {% endfor %}
+                      </ul>
+                  </div>
+  
+                  <div class="widget widget-tag-cloud">
+                      <h3 class="widget-title">标签云</h3>
+                      <ul>
+                          <li>
+                              <a href="#">Django</a>
+                          </li>
+                          <li>
+                              <a href="#">Python</a>
+                          </li>
+                          <li>
+                              <a href="#">Java</a>
+                          </li>
+                          <li>
+                              <a href="#">笔记</a>
+                          </li>
+                          <li>
+                              <a href="#">文档</a>
+                          </li>
+                          <li>
+                              <a href="#">AngularJS</a>
+                          </li>
+                          <li>
+                              <a href="#">CSS</a>
+                          </li>
+                          <li>
+                              <a href="#">JavaScript</a>
+                          </li>
+                          <li>
+                              <a href="#">Snippet</a>
+                          </li>
+                          <li>
+                              <a href="#">jQuery</a>
+                          </li>
+                      </ul>
+                  </div>
+                  <div class="rss">
+                      <a href=""><span class="ion-social-rss-outline"></span> RSS 订阅</a>
+                  </div>
+              </aside>
+          </div>
+      </div>
+  </div>
+  <footer id="site-footer">
+      <div class="container">
+          <div class="row">
+              <div class="col-md-12">
+                  <p class="copyright">&copy 2017 - 采集自<a href="http://www.cssmoban.com/"
+                                                          target="_blank" title="模板之家">模板之家</a>
+                  </p>
+              </div>
+          </div>
+      </div>
+  </footer>
+  
+  <!-- Mobile Menu -->
+  <div class="overlay overlay-hugeinc">
+      <button type="button" class="overlay-close"><span class="ion-ios-close-empty"></span></button>
+      <nav>
+          <ul>
+              <li><a href="index.html">首页</a></li>
+              <li><a href="full-width.html">博客</a></li>
+              <li><a href="about.html">关于</a></li>
+              <li><a href="contact.html">联系</a></li>
+          </ul>
+      </nav>
+  </div>
+  
+  <script src="js/script.js"></script>
+  
+  </body>
+  </html>
+  
+  ```
+
+  在`settings.py`中对`blog_tags`进行注册（1.10及以后版本可不注册）
+
+  ```python
+  TEMPLATES = [
+      {
+          'BACKEND': 'django.template.backends.django.DjangoTemplates',
+          'DIRS': [os.path.join(BASE_DIR,'templates')],
+          'APP_DIRS': True,
+          'OPTIONS': {
+              'context_processors': [
+                  'django.template.context_processors.debug',
+                  'django.template.context_processors.request',
+                  'django.contrib.auth.context_processors.auth',
+                  'django.contrib.messages.context_processors.messages',
+              ],
+          'libraries': {
+              'blog_tags': 'blog.templatetags.blog_tags',
+  
+          }
+          },
+      },
+  ]
+  ```
+
+  **Done！**
 
   
