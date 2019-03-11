@@ -1287,4 +1287,49 @@ def detail(request,pk):
 
   **Done！**
 
-  
+## 分类与归档
+
+归档视图函数
+
+```python
+def archives(request, year, month):
+	post_list = Post.objects.filter(created_time__year=year,created_time__month=month).order_by('-created_time')
+	return render(request, 'blog/index.html', context={'post_list': post_list})
+```
+
+<!--Python 中类实例调用属性的方法通常是 created_time.year，但是由于这里作为函数的参数列表，所以 Django 要求我们把点替换成了两个下划线，即 created_time__year。-->
+
+绑定URL
+
+```python
+from django.conf.urls import url
+
+from . import views
+
+app_name = 'blog'
+urlpatterns = [
+    url(r"^$",views.index,name="index"),
+    url(r"^post/(?P<pk>[0-9]+)/$",views.detail,name="detail"),
+    url(r"^archives/(?P<year>[0-9]{4})/(?P<month>[0-9]{1,2})/$",views.archives,name="archives"),
+]
+```
+
+修改模板`base.html`
+
+```html
+<div class="widget widget-archives">
+    <h3 class="widget-title">归档</h3>
+    {% archives as date_list %}
+    <ul>
+        {% for date in date_list %}
+        <li>
+            <a href="{% url 'blog:archives' date.year date.month %}">{{ date.year }} 年 {{ date.month }} 月</a>
+        </li>
+        {% empty %}
+        暂无归档！
+        {% endfor %}
+    </ul>
+</div>
+```
+
+<!--{% url %} 这个模板标签的作用是解析视图函数 blog:archives 对应的 URL 模式，并把 URL 模式中的年和月替换成 date.year， date.month 的值。（ 相当于 Flask 里模板中的{{url_for()}}标签） -->
