@@ -1289,6 +1289,8 @@ def detail(request,pk):
 
 ## 分类与归档
 
+**1.归档**
+
 归档视图函数
 
 ```python
@@ -1333,3 +1335,49 @@ urlpatterns = [
 ```
 
 <!--{% url %} 这个模板标签的作用是解析视图函数 blog:archives 对应的 URL 模式，并把 URL 模式中的年和月替换成 date.year， date.month 的值。（ 相当于 Flask 里模板中的{{url_for()}}标签） -->
+
+**2.分类**
+
+分类视图函数
+
+```python
+def category(request,pk):
+    cate = get_object_or_404(Category,pk=pk)
+    post_list = Post.objects.filter(category=cate).order_by('-created_time')
+    return render(request,'blog/index.html',context={'post_list':post_list})
+```
+
+绑定URL
+
+```python
+from django.conf.urls import url
+
+from . import views
+
+app_name = 'blog'
+urlpatterns = [
+    url(r"^$",views.index,name="index"),
+    url(r"^post/(?P<pk>[0-9]+)/$",views.detail,name="detail"),
+    url(r"^archives/(?P<year>[0-9]{4})/(?P<month>[0-9]{1,2})/$",views.archives,name="archives"),
+    url(r"^category/(?P<pk>[0-9]+)/$",views.category,name="category"),
+]
+```
+
+修改模板`base.html`
+
+```html
+<div class="widget widget-category">
+    <h3 class="widget-title">分类</h3>
+    {% get_categories as category_list %}
+    <ul>
+        {% for category in category_list %}
+        <li>
+            <a href="{% url 'blog:category' category.pk %}">{{ category.name }} <span class="post-count">(13)</span></a>
+        </li>
+        {% empty %}
+        暂无分类！
+        {% endfor %}
+    </ul>
+</div>
+```
+
