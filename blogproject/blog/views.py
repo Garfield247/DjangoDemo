@@ -26,6 +26,9 @@ def detail(request,pk):
     :return:
     '''
     post = get_object_or_404(Post,pk=pk)
+
+    post.increase_views()
+
     post.body = markdown(post.body,
                          extensions = [
                              'markdown.extensions.extra',
