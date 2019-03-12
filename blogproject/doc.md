@@ -1585,5 +1585,49 @@ def detail(request,pk):
 
   **Done !**（运行前执行数据库迁移）
 
-  
+  ## 改进
 
+  - 文章列表默认逆序
+
+    1.Post 类的内部定义一个 Meta 类，并指定排序属性
+
+    ```python
+    class Post(models.Model):
+        title = models.CharField(max_length=100)
+        body = models.TextField()
+        created_time = models.DateTimeField()
+        modified_time = models.DateTimeField()
+        excerpt = models.CharField(max_length=200,blank=True)
+        category = models.ForeignKey(Category)
+        tags = models.ManyToManyField(Tag,blank=True)
+        author = models.ForeignKey(User)
+    
+        def __str__(self):
+            return self.title
+    
+        def get_absolute_url(self):
+            return reverse('blog:detail',kwargs={'pk':self.pk})
+        
+        class Meta:
+            ordering = ['-created_time']
+    ```
+
+    2.删掉视图函数中对文章列表中返回结果进行排序的代码
+
+  - 完善链接跳转
+
+    `base.html`
+
+    ```html
+    <h1><a href="{% url 'blog:index' %}"><b>Black</b> &amp; White</a></h1>
+    <!--首页logo链接-->
+    ```
+
+    `index.html`
+
+    ```html
+     <span class="comments-link"><a href="{{ post.get_absolute_url }}#comment-area">{{ post.comment_set.count }} 评论</a></span>
+    <!--文章列表页评论数量和评论跳转-->
+    ```
+
+    
