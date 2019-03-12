@@ -1381,3 +1381,209 @@ urlpatterns = [
 </div>
 ```
 
+**Done!**
+
+## 评论
+
+创建一个新的应用
+
+```python
+python manage.py startapp comments
+```
+
+在`settings.py`中注册`comments` 应用
+
+```python
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'blog',
+    'comments',
+]
+```
+
+创建数据库模型
+
+```python
+from django.db import models
+
+# Create your models here.
+class Comment(models.Model):
+
+    name = models.CharField(max_length=100)
+    email = models.CharField(max_length=255)
+    url = models.URLField(blank=True)
+    text = models.TextField()
+    created_time = models.DateTimeField(auto_now_add=True)
+
+    post = models.ForeignKey('blog.Post')
+
+    def __str__(self):
+        return self.text[:20]
+```
+
+评论表单
+
+在`comments`应用下创建`forms.py`
+
+```python
+from django import forms
+from .models import Comment
+
+class CommentForm(forms.ModelForm):
+    class Meta:
+        model = Comment
+        fields = ['name','email','url','text']
+```
+
+<!--要使用 Django 的表单功能，我们首先导入 forms 模块。 Django 的表单类必须继承自 forms.Form 类或者 forms.ModelForm 类。 如果表单对应有一个数据库模型（例如这里的评论表单对应着评论模型），那么使用 ModelForm 类会简单很多，这是 Django为我们提供的方便。之后我们在表单的内部类 Meta 里指定一些和表单相关的东西。model = Comment 表明这个表单对应的数据库模型是 Comment 类。 fields = ['name','email', 'url', 'text'] 指定了表单需要显示的字段，这里我们指定了 name、 email、 url、text 需要显示。-->
+
+评论视图函数
+
+```python
+from django.shortcuts import render, get_object_or_404, redirect
+from .forms import CommentForm
+
+# Create your views here.
+from blogproject.blog.models import Post
+
+
+def post_comment(request,post_pk):
+    post = get_object_or_404(Post,pk=post_pk)
+    if request.method == "POST":
+        form = CommentForm(request.POST)
+        if form.is_valid():
+            comment = form.save(commit=False)
+            comment.post = post
+            comment.save()
+            return redirect(post)
+        else:
+            comment_list = post.comment_set_all()
+            context = {
+                'post':post,
+                'form':form,
+                'comment_list':comment_list
+         }
+        return redirect(request,'blog/detail.html',context=context )
+```
+
+
+
+绑定`url`
+
+`【blogproject/comments/urls.py】`
+
+```python
+from django.conf.urls import url
+from . import views
+
+app_name = 'comments'
+urlpatterns = [
+    url(r'^comments/post/(?P<pk>[0-9]+)/$',views.post_comment,name='post_comment')
+]
+```
+
+`【blogproject/blogproject/urls.py】`
+
+```python
+from django.conf.urls import url,include
+from django.contrib import admin
+
+urlpatterns = [
+    url(r'^admin/', admin.site.urls),
+    url(r"^blog/",include("blog.urls")),
+    url(r'^comments/',include('comments.urls'))
+]
+
+```
+
+修改详情页视图函数
+
+```python
+def detail(request,pk):
+    '''
+    文章详情页视图函数
+    :param request:
+    :param pk:
+    :return:
+    '''
+    post = get_object_or_404(Post,pk=pk)
+    post.body = markdown(post.body,
+                         extensions = [
+                             'markdown.extensions.extra',
+                             'markdown.extensions.codehilite',
+                             'markdown.extensions.toc',
+                         ]
+                         )
+    form = CommentForm()
+    comment_list = post.comment_set.all()
+    context = {'post':post,
+               'form':form,
+               'comment_list':comment_list,
+               }
+    return render(request,'blog/detail.html',context=context)		
+```
+
+修改模板
+
+- 渲染表单
+
+  ```html
+      <h3>发表评论</h3>
+      <form action="{% url 'comments:post_comment' post.pk %}" method="post" class="comment-form">
+          {% csrf_token %}
+          <div class="row">
+              <div class="col-md-4">
+                  <label for="{{ form.name.id_for_label }}">名字： </label>
+                  {{ form.name }}
+                  {{ form.name.errors }}
+              </div>
+              <div class="col-md-4">
+                  <label for="{{ form.email.id_for_label }}">邮箱： </label>
+                  {{ form.email }}
+                  {{ form.email.errors }}
+              </div>
+              <div class="col-md-4">
+                  <label for="{{ form.url.id_for_label }}">Url： </label>
+                  {{ form.url }}
+                  {{ form.url.errors }}
+              </div>
+              <div class="col-md-12">
+                  <label for="{{ form.text.id_for_label }}">评论： </label>
+                  {{ form.text }}
+                  {{ form.text.errors }}
+              </div>
+              <button type="submit" class="comment-btn">发表</button>
+          </div> <!-- row -->
+      </form>
+  ```
+
+- 展示评论
+
+  ```python
+    <div class="comment-list-panel">
+          <h3>评论列表，共 <span>{{ comment_list|length }}</span> 条评论</h3>
+          <ul class="comment-list list-unstyled">
+              {% for comment in comment_list  %}
+              <li class="comment-item">
+                  <span class="nickname">{{ comment.name }}</span>
+                  <time class="submit-date" datetime="{{ comment.created_time }}">{{ comment.created_time }}</time>
+                  <div class="text">
+                      {{ comment.text }}
+                  </div>
+              </li>
+              {% empty %}
+              暂无评论
+              {% endfor %}
+          </ul>
+      </div>
+  ```
+
+  **Done !**（运行前执行数据库迁移）
+
+  
+
