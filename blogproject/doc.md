@@ -1715,6 +1715,52 @@ def detail(request,pk):
 1.复写`save`方法
 
 ```python
+class Post(models.Model):
+    title = models.CharField(max_length=100)
+    body = models.TextField()
+    created_time = models.DateTimeField()
+    modified_time = models.DateTimeField()
+    excerpt = models.CharField(max_length=200,blank=True)
+    category = models.ForeignKey(Category)
+    tags = models.ManyToManyField(Tag,blank=True)
+    author = models.ForeignKey(User)
 
+    views = models.PositiveIntegerField(default=0)
+
+    def __str__(self):
+        return self.title
+
+    def get_absolute_url(self):
+        return reverse('blog:detail',kwargs={'pk':self.pk})
+
+    class Meta:
+        ordering = ['-created_time']
+
+    def increase_views(self):
+        self.views +=1
+        self.save(update_fields=['views'])
+
+    def save(self,*args,**kwargs):
+
+        if not self.excerpt:
+            md = Markdown(
+                extensions=[
+                    'markdown.extensions.extra',
+                    'markdown.extensions.codehilite',
+                ]
+            )
+            self.excerpt = strip_tags(md.convert(self.body))[:54]
+        super(Post, self).save(*args, **kwargs)
+```
+
+2.使用 `truncatechars` 模板过滤器(与上面二选一)
+
+```html
+<div class="entry-content clearfix">
+	<p>{{ post.body|truncatechars:54 }}</p>
+	<div class="read-more cl-effect-14">
+		<a href="{{ post.get_absolute_url }}" class="more-link">继续阅读 <span class="metanav">→</span></a>
+	</div>
+</div>
 ```
 
