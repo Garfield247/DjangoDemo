@@ -3,6 +3,8 @@ from django.db import models
 
 # Create your models here.
 from django.urls import reverse
+from django.utils.html import strip_tags
+from markdown import Markdown
 
 
 class Category(models.Model):
@@ -41,3 +43,15 @@ class Post(models.Model):
     def increase_views(self):
         self.views +=1
         self.save(update_fields=['views'])
+
+    def save(self,*args,**kwargs):
+
+        if not self.excerpt:
+            md = Markdown(
+                extensions=[
+                    'markdown.extensions.extra',
+                    'markdown.extensions.codehilite',
+                ]
+            )
+            self.excerpt = strip_tags(md.convert(self.body))[:54]
+        super(Post, self).save(*args, **kwargs)

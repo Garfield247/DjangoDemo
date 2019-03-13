@@ -1708,3 +1708,13 @@ def detail(request,pk):
 <span class="views-count"><a href="#">{{ post.views }} 阅读</a></span>
 ```
 
+**Done!**
+
+## 自动生成文章摘要
+
+1.复写`save`方法
+
+```python
+
+```
+
