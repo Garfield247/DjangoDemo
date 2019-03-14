@@ -1932,4 +1932,49 @@ class Post(models.Model):
    {% endif %}
    ```
 
-   
+## 统计各个分类下文章数量
+
+1. 修改标签模板`【blog/templatetags/blog_tags.py】`
+
+```python
+# 分类模板标签
+@register.simple_tag
+def get_categories():
+    return Category.objects.annotate(num_posts=Count('post')).filter(num_posts__gt=0)
+
+```
+
+<!--Category.objects.annotate 方法和 Category.objects.all 有点类似，它会返回数据库中全部 Category 的记录，但同时它还会做一些额外的事情（ annotate 的作用就是往模型类中新增一个属性，这里新增了 num_posts 属性，注意并非保存到数据库，在Django ORM 中是保存到 Category 的实例的属性中） ，在这里我们希望它做的额外事情就是去统计返回的 Category 记录的集合中每条记录下的文章数。 代码中的 Count 方法为我们做了这个事，它接收一个和 Categoty 相关联的模型参数名（这里是 Post，通过 ForeignKey 关联的），然后它便会统计 Category 记录的集合中每条记录下的与之关联的 Post 记录的行数，也就是文章数，最后把这个值保存到 num_posts 属性中。-->
+
+2. 在模板中引用
+
+```html
+<div class="widget widget-category">
+    <h3 class="widget-title">分类</h3>
+    {% get_categories as category_list %}
+    <ul>
+        {% for category in category_list %}
+        <li>
+            <a href="{% url 'blog:category' category.pk %}">{{ category.name }} <span class="post-count">({{ category.num_posts }})</span></a>
+        </li>
+        {% empty %}
+        暂无分类！
+        {% endfor %}
+    </ul>
+</div>
+<div class="widget widget-category">
+    <h3 class="widget-title">分类</h3>
+    {% get_categories as category_list %}
+    <ul>
+        {% for category in category_list %}
+        <li>
+            <a href="{% url 'blog:category' category.pk %}">{{ category.name }} <span class="post-count">({{ category.num_posts }})</span></a>
+        </li>
+        {% empty %}
+        暂无分类！
+        {% endfor %}
+    </ul>
+</div>
+
+```
+
