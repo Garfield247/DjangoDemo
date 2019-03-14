@@ -1978,3 +1978,68 @@ def get_categories():
 
 ```
 
+## 标签云
+
+1. 定义获取标签的模板标签`【blog/templatetags/blog_tags.py】`
+
+   ```python
+   # 标签模板标签
+   @register.simple_tag
+   def get_tags():
+       return Tag.objects.annotate(num_posts=Count('post')).filter(num_posts__gt=0)
+   ```
+
+2. 修改模板`【base.html】`
+
+   ```html
+   <div class="widget widget-tag-cloud">
+       <h3 class="widget-title">标签云</h3>
+       {% get_tags as tag_list %}
+       <ul>
+           {% for tag in tag_list %}
+           <li>
+               <a href="#">{{ tag.name }}({{ tag.num_posts }})</a>
+           </li>
+           {% empty %}
+           暂无标签
+           {% endfor %}
+       </ul>
+   </div>
+   ```
+
+3. 标签类视图`【blog/views.py】`
+
+   ```python
+   class TagView(ListView):
+       model = Post
+       template_name = 'blog/index.html'
+       context_object_name = 'post_list'
+   
+       def get_queryset(self):
+           tag = get_object_or_404(Tag,pk=self.kwargs.get('pk'))
+           return super().get_queryset().filter(tags=tag)
+   ```
+
+4. 绑定URL
+
+   ```python
+   url(r"^tag/(?P<pk>[0-9]+)/$", views.TagView.as_view(), name="tag"),
+   ```
+
+5. 设置模板内的跳转标签
+
+   ```html
+   <div class="widget widget-tag-cloud">
+       <h3 class="widget-title">标签云</h3>
+       {% get_tags as tag_list %}
+       <ul>
+           {% for tag in tag_list %}
+           <li>
+               <a href="{% url 'blog:tag' tag.pk %}">{{ tag.name }}({{ tag.num_posts }})</a>
+           </li>
+           {% empty %}
+           暂无标签
+           {% endfor %}
+       </ul>
+   </div>
+   ```

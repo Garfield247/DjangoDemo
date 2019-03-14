@@ -3,7 +3,7 @@ from django.http import HttpResponse
 from django.views.generic import ListView, DetailView
 from markdown import markdown
 from comments.forms import CommentForm
-from .models import Post, Category
+from .models import Post, Category ,Tag
 
 
 # Create your views here.
@@ -120,3 +120,12 @@ class CategoryView(ListView):
     def get_queryset(self):
         cate = get_object_or_404(Category,pk=self.kwargs.get('pk'))
         return super().get_queryset().filter(category=cate)
+
+class TagView(ListView):
+    model = Post
+    template_name = 'blog/index.html'
+    context_object_name = 'post_list'
+
+    def get_queryset(self):
+        tag = get_object_or_404(Tag,pk=self.kwargs.get('pk'))
+        return super().get_queryset().filter(tags=tag)
