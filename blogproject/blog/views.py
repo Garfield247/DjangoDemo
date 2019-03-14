@@ -75,9 +75,11 @@ class PostDetailView(DetailView):
         context = super().get_context_data(**kwargs)
         form = CommentForm()
         comment_list = self.object.comment_set.all()
+        # tags = self.object.tags.all()
         context.update({
             'form':form,
             'comment_list':comment_list,
+            # 'tags':tags,
         })
         return context
 

@@ -19,6 +19,15 @@
         </div>
     </header>
     <div class="entry-content clearfix">
+        <div class="widget-tag-cloud">
+            <ul>
+                {% for tag in post.tags.all %}
+                标签：
+                <li><a href="{% url 'blog:tag' tag.pk %}">#
+                    {{ tag.name }}</a></li>
+                {% endfor %}
+            </ul>
+        </div>
         {{ post.body|safe }}
     </div>
 </article>
@@ -54,7 +63,7 @@
     <div class="comment-list-panel">
         <h3>评论列表，共 <span>{{ comment_list|length }}</span> 条评论</h3>
         <ul class="comment-list list-unstyled">
-            {% for comment in comment_list  %}
+            {% for comment in comment_list %}
             <li class="comment-item">
                 <span class="nickname">{{ comment.name }}</span>
                 <time class="submit-date" datetime="{{ comment.created_time }}">{{ comment.created_time }}</time>

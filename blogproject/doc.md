@@ -2043,3 +2043,25 @@ def get_categories():
        </ul>
    </div>
    ```
+
+## 详情页显示标签
+
+修改模板`【templates/blog/detail.html】`
+
+```html
+    <div class="entry-content clearfix">
+        <div class="widget-tag-cloud">
+            <ul>
+                {% for tag in post.tags.all %}
+                标签：
+                <li><a href="{% url 'blog:tag' tag.pk %}">#
+                    {{ tag.name }}</a></li>
+                {% endfor %}
+            </ul>
+        </div>
+        {{ post.body|safe }}
+    </div>
+```
+
+<!--由于 Post 和 Categoty 是一对多的关系（ ForeignKey），所以 post.categoty 是唯一的。但是 Post 和 Tag 是多对多的关系（ ManyToManyField），那么 post.tags 就有可能有多个值。所以Django 没有让 post.tags 返回全部标签，而是返回了一个模型管理器（类似于 objects） ，然后我们可以调用这个模型管理器的 all 方法，来获取这篇post 下的全部标签列表了。-->
+
