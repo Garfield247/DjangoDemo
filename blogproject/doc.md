@@ -1904,4 +1904,32 @@ class Post(models.Model):
    ]
    ```
 
+## Django Pagination 简单分页
+
+1. 在类视图内指定`paginate_by`属性
+
+   ```python
+   class IndexView(ListView):
+       model = Post
+       template_name = 'blog/index.html'
+       context_object_name = 'post_list'
+       paginate_by = 5
+   ```
+
+2. 在模板中设置分页导航
+
+   ```html
+   {% if is_paginated %}
+   <div class="pager" >
+       {% if page_obj.has_previous %}
+       <a href="?page={{ page_obj.previous_page_number }}">上一页</a>
+       {% endif %}
+       <span class="current">第 {{ page_obj.number }} 页 / 共 {{ paginator.num_pages }} 页</span>
+       {% if page_obj.has_next %}
+       <a href="?page={{ page_obj.next_page_number }}">下一页</a>
+       {% endif %}
+   </div>
+   {% endif %}
+   ```
+
    
