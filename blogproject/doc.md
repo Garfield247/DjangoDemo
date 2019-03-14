@@ -2049,19 +2049,110 @@ def get_categories():
 修改模板`【templates/blog/detail.html】`
 
 ```html
-    <div class="entry-content clearfix">
-        <div class="widget-tag-cloud">
-            <ul>
-                {% for tag in post.tags.all %}
-                标签：
-                <li><a href="{% url 'blog:tag' tag.pk %}">#
-                    {{ tag.name }}</a></li>
-                {% endfor %}
-            </ul>
-        </div>
-        {{ post.body|safe }}
+<div class="entry-content clearfix">
+    <div class="widget-tag-cloud">
+        <ul>
+            {% for tag in post.tags.all %}
+            标签：
+            <li><a href="{% url 'blog:tag' tag.pk %}">#
+                {{ tag.name }}</a></li>
+            {% endfor %}
+        </ul>
     </div>
+    {{ post.body|safe }}
+</div>
 ```
 
 <!--由于 Post 和 Categoty 是一对多的关系（ ForeignKey），所以 post.categoty 是唯一的。但是 Post 和 Tag 是多对多的关系（ ManyToManyField），那么 post.tags 就有可能有多个值。所以Django 没有让 post.tags 返回全部标签，而是返回了一个模型管理器（类似于 objects） ，然后我们可以调用这个模型管理器的 all 方法，来获取这篇post 下的全部标签列表了。-->
 
+## markdown自动生成目录
+
+1. 修改详情页的类视图
+
+   ```python
+   class PostDetailView(DetailView):
+       model = Post
+       template_name = 'blog/detail.html'
+       context_object_name = 'post'
+   
+       def get(self,request,*args,**kwargs):
+           response = super().get(request,*args,**kwargs)
+           self.object.increase_views()
+           return  response
+   
+       def get_object(self, queryset=None):
+           post = super().get_object(queryset=None)
+           md = Markdown(extensions = [
+                                    'markdown.extensions.extra',
+                                    'markdown.extensions.codehilite',
+                                    'markdown.extensions.toc'
+                                ])
+           post.body = md.convert(post.body)
+           post.toc = md.toc
+           return post
+   
+       def get_context_data(self, **kwargs):
+           context = super().get_context_data(**kwargs)
+           form = CommentForm()
+           comment_list = self.object.comment_set.all()
+           context.update({
+               'form':form,
+               'comment_list':comment_list,
+           })
+           return context
+   
+   ```
+
+   <!--和之前的代码不同，在 get_object 方法中我们没有直接用 markdown.markdown() 方法来渲染 post.body 中的内容，而是先实例化了一个 markdown.Markdown 类 md，和markdown.markdown() 方法一样，也传入了 extensions 参数（可以用 Markdown 类也可以用 markdown 方法） 。接着我们便使用该实例的 convert 方法将 post.body 中的Markdown 文本渲染成 HTML 文本。 而一旦调用该方法后，实例 md 就会多出一个 toc 属性（ 注意！调用 md 的属性 convert 方法之后，会改变 md 自身！ md 会多出一个 toc 属性！ ） ，这个属性的值就是内容的目录，我们把 md.toc 的值赋给 post.toc 属性-->
+
+2. 修改详情页模板
+
+   ```html
+   {% block toc %}
+   <div class="widget widget-content">
+       <h3 class="widget-title">文章目录</h3>
+       {{ post.toc|safe }}
+   </div>
+   {% endblock toc %}
+   ```
+
+   <!--使用模板变量标签 {{ post.toc }} 显示模板变量的值，注意 post.toc 实际是一段HTML 代码，我们知道 Django 会对模板中的 HTML 代码进行转义，所以要使用safe 标签防止 Django 对其转义。-->
+
+3. 优化锚点URL`【blog/views.py】`
+
+   - 当前锚点
+
+     `<http://127.0.0.1:8000/blog/post/4/#_1>`
+
+   ```python
+   from django.utils.text import slugify
+   from markdown.extensions.toc import TocExtension
+   
+   class PostDetailView(DetailView):
+       model = Post
+       template_name = 'blog/detail.html'
+       context_object_name = 'post'
+   
+       def get(self,request,*args,**kwargs):
+           response = super().get(request,*args,**kwargs)
+           self.object.increase_views()
+           return  response
+   
+       def get_object(self, queryset=None):
+           post = super().get_object(queryset=None)
+           md = Markdown(extensions = [
+                                   'markdown.extensions.extra',
+                                   'markdown.extensions.codehilite',
+                                   # 'markdown.extensions.toc',
+                                   TocExtension(slugify=slugify)
+                                ])
+           post.body = md.convert(post.body)
+           post.toc = md.toc
+           return post
+   ```
+
+   <!--和之前不同的是， extensions 中的 toc 拓展不再是字符串 markdown.extensions.toc ，而是 TocExtension 的实例。 TocExtension 在实例化时其 slugify 参数可以接受一个函数作为参数，这个函数将被用于处理标题的锚点值。 Markdown 内置的处理方法不能处理中文标题，所以我们使用了 django.utils.text 中的 slugify 方法，该方法可以很好地处理中文。-->
+
+   - 优化后的锚点
+
+     `<http://127.0.0.1:8000/blog/post/4/#一级标题>`

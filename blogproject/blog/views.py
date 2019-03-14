@@ -1,8 +1,11 @@
 from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponse
+from django.utils.text import slugify
 from django.views.generic import ListView, DetailView
-from markdown import markdown
+from markdown import markdown, Markdown
 from comments.forms import CommentForm
+from markdown.extensions.toc import TocExtension
+
 from .models import Post, Category ,Tag
 
 
@@ -51,6 +54,8 @@ class IndexView(ListView):
 #                }
 #     return render(request,'blog/detail.html',context=context)
 
+
+
 class PostDetailView(DetailView):
     model = Post
     template_name = 'blog/detail.html'
@@ -63,23 +68,23 @@ class PostDetailView(DetailView):
 
     def get_object(self, queryset=None):
         post = super().get_object(queryset=None)
-        post.body = markdown(post.body,
-                             extensions = [
-                                 'markdown.extensions.extra',
-                                 'markdown.extensions.codehilite',
-                                 'markdown.extensions.toc'
+        md = Markdown(extensions = [
+                                'markdown.extensions.extra',
+                                'markdown.extensions.codehilite',
+                                # 'markdown.extensions.toc',
+                                TocExtension(slugify=slugify)
                              ])
+        post.body = md.convert(post.body)
+        post.toc = md.toc
         return post
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         form = CommentForm()
         comment_list = self.object.comment_set.all()
-        # tags = self.object.tags.all()
         context.update({
             'form':form,
             'comment_list':comment_list,
-            # 'tags':tags,
         })
         return context
 
