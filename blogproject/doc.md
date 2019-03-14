@@ -1764,3 +1764,64 @@ class Post(models.Model):
 </div>
 ```
 
+## 基于类的通用视图
+
+- **`ListView`** 
+
+1. 将index函数改为类视图
+
+   ```python
+   class IndexView(ListView):
+       model = Post
+       template_name = 'blog/index.html'
+       context_object_name = 'post_list'
+   ```
+
+2. 修改`category`函数
+
+   ```python
+   class CategoryView(ListView):
+       model = Post
+       template_name = 'blog/index.html'
+       context_object_name = 'post_list'
+   
+       def get_queryset(self):
+           cate = get_object_or_404(Category,pk=self.kwargs.get('pk'))
+           return super().get_queryset().filter(category=cate)
+   ```
+
+3. 将 `archives` 视图函数改写成类视图
+
+   ```python
+   class ArchivesView(ListView):
+       model = Post
+       template_name = 'blog/index.html'
+       context_object_name = 'post_list'
+   
+       def get_queryset(self):
+           return super().get_queryset().filter(
+               created_time__year = self.kwargs.get('year'),
+               created_time__month = self.kwargs.get('month'),
+               )
+   ```
+
+4. 修改`url`
+
+   ```python
+   from django.conf.urls import url
+   
+   from . import views
+   
+   app_name = 'blog'
+   urlpatterns = [
+       # url(r"^$",views.index,name="index"),
+       url(r"^$", views.IndexView.as_view(), name="index"),
+       url(r"^post/(?P<pk>[0-9]+)/$",views.detail,name="detail"),
+       # url(r"^archives/(?P<year>[0-9]{4})/(?P<month>[0-9]{1,2})/$",views.archives,name="archives"),
+       url(r"^archives/(?P<year>[0-9]{4})/(?P<month>[0-9]{1,2})/$", views.ArchivesView.as_view(), name="archives"),
+       # url(r"^category/(?P<pk>[0-9]+)/$",views.category,name="category"),
+       url(r"^category/(?P<pk>[0-9]+)/$", views.CategoryView.as_view(), name="category"),
+   
+   ]
+   ```
+
