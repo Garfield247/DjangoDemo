@@ -1768,6 +1768,10 @@ class Post(models.Model):
 
 - **`ListView`**    
 
+  <!--• model：将 model 指定为 Post，告诉 Django 我要获取的模型是 Post。
+  • template_name：指定这个视图渲染的模板。
+  • context_object_name：指定获取的模型列表数据保存的变量名。这个变量会被传递给模板。-->
+
 1. 将index函数改为类视图
 
    ```python
@@ -1861,6 +1865,25 @@ class Post(models.Model):
            return context
    ```
 
+   <!--首先我们为 PostDetailView 类指定了一些属性的值，这些属性的含义和 ListView 中
+   是一样的，这里不再重复讲解。
+   紧接着我们覆写了 get 方法。这对应着 detail 视图函数中将 post 的阅读量 +1 的
+   那部分代码。事实上，你可以简单地把 get 方法的调用看成是 detail 视图函数的调
+   用。
+   接着我们又复写了 get_object 方法。这对应着 detail 视图函数中根据文章的 id（也
+   就是 pk）获取文章，然后对文章的 post.body 进行 Markdown 渲染的代码部
+   分。
+   最后我们复写了 get_context_data 方法。这部分对应着 detail 视图函数中生成评论表
+   单、获取 post 下的评论列表的代码部分。这个方法返回的值是一个字典， 这个字
+   典就是模板变量字典，最终会被传递给模板。
+   你也许会被这么多方法搞乱，为了便于理解，你可以简单地把 get 方法看成
+   是 detail 视图函数，至于其它的像 get_object、 get_context_data 都是辅助方法，这
+   些方法最终在 get 方法中被调用，这里你没有看到被调用的原因是它们隐含在
+   了 super(PostDetailView, self).get(request, *args, **kwargs) 即父类 get 方法的调用中。
+   最终传递给浏览器的 HTTP 响应就是 get 方法返回的 HttpResponse 对象。
+   这些方法的相同点：都执行了父类方法，然后对父类方法的返回值进行一些操
+   作，最后返回这个修改后的返回值。-->
+
 2. 修改url
 
    ```python
@@ -1882,4 +1905,3 @@ class Post(models.Model):
    ```
 
    
-
