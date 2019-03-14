@@ -1766,7 +1766,7 @@ class Post(models.Model):
 
 ## 基于类的通用视图
 
-- **`ListView`** 
+- **`ListView`**    
 
 1. 将index函数改为类视图
 
@@ -1824,4 +1824,62 @@ class Post(models.Model):
    
    ]
    ```
+
+- **`DetailView`** 
+
+1.  detail 视图函数转换为等价的类视图 `PostDetailView`
+
+   ```python
+   class PostDetailView(DetailView):
+       model = Post
+       template_name = 'blog/detail.html'
+       context_object_name = 'post'
+   
+       def get(self,request,*args,**kwargs):
+           response = super().get(request,*args,**kwargs)
+           self.object.increase_views()
+           return  response
+   
+       def get_object(self, queryset=None):
+           post = super().get_object(queryset=None)
+           post.body = markdown(post.body,
+                                extensions = [
+                                    'markdown.extensions.extra',
+                                    'markdown.extensions.codehilite',
+                                    'markdown.extensions.toc'
+                                ])
+           return post
+   
+       def get_context_data(self, **kwargs):
+           context = super().get_context_data(**kwargs)
+           form = CommentForm()
+           comment_list = self.object.comment_set.all()
+           context.update({
+               'form':form,
+               'comment_list':comment_list,
+           })
+           return context
+   ```
+
+2. 修改url
+
+   ```python
+   from django.conf.urls import url
+   
+   from . import views
+   
+   app_name = 'blog'
+   urlpatterns = [
+       # url(r"^$",views.index,name="index"),
+       url(r"^$", views.IndexView.as_view(), name="index"),
+       # url(r"^post/(?P<pk>[0-9]+)/$",views.detail,name="detail"),
+       url(r"^post/(?P<pk>[0-9]+)/$", views.PostDetailView.as_view(), name="detail"),
+       # url(r"^archives/(?P<year>[0-9]{4})/(?P<month>[0-9]{1,2})/$",views.archives,name="archives"),
+       url(r"^archives/(?P<year>[0-9]{4})/(?P<month>[0-9]{1,2})/$", views.ArchivesView.as_view(), name="archives"),
+       # url(r"^category/(?P<pk>[0-9]+)/$",views.category,name="category"),
+       url(r"^category/(?P<pk>[0-9]+)/$", views.CategoryView.as_view(), name="category"),
+   ]
+   ```
+
+   
 

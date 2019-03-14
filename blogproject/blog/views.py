@@ -1,6 +1,6 @@
 from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponse
-from django.views.generic import ListView
+from django.views.generic import ListView, DetailView
 from markdown import markdown
 from comments.forms import CommentForm
 from .models import Post, Category
@@ -24,31 +24,61 @@ class IndexView(ListView):
     template_name = 'blog/index.html'
     context_object_name = 'post_list'
 
-def detail(request,pk):
-    '''
-    文章详情页视图函数
-    :param request:
-    :param pk:
-    :return:
-    '''
-    post = get_object_or_404(Post,pk=pk)
+# def detail(request,pk):
+#     '''
+#     文章详情页视图函数
+#     :param request:
+#     :param pk:
+#     :return:
+#     '''
+#     post = get_object_or_404(Post,pk=pk)
+#
+#     post.increase_views()
+#
+#     post.body = markdown(post.body,
+#                          extensions = [
+#                              'markdown.extensions.extra',
+#                              'markdown.extensions.codehilite',
+#                              'markdown.extensions.toc',
+#                          ]
+#                          )
+#     form = CommentForm()
+#     comment_list = post.comment_set.all()
+#     context = {'post':post,
+#                'form':form,
+#                'comment_list':comment_list,
+#                }
+#     return render(request,'blog/detail.html',context=context)
 
-    post.increase_views()
+class PostDetailView(DetailView):
+    model = Post
+    template_name = 'blog/detail.html'
+    context_object_name = 'post'
 
-    post.body = markdown(post.body,
-                         extensions = [
-                             'markdown.extensions.extra',
-                             'markdown.extensions.codehilite',
-                             'markdown.extensions.toc',
-                         ]
-                         )
-    form = CommentForm()
-    comment_list = post.comment_set.all()
-    context = {'post':post,
-               'form':form,
-               'comment_list':comment_list,
-               }
-    return render(request,'blog/detail.html',context=context)
+    def get(self,request,*args,**kwargs):
+        response = super().get(request,*args,**kwargs)
+        self.object.increase_views()
+        return  response
+
+    def get_object(self, queryset=None):
+        post = super().get_object(queryset=None)
+        post.body = markdown(post.body,
+                             extensions = [
+                                 'markdown.extensions.extra',
+                                 'markdown.extensions.codehilite',
+                                 'markdown.extensions.toc'
+                             ])
+        return post
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        form = CommentForm()
+        comment_list = self.object.comment_set.all()
+        context.update({
+            'form':form,
+            'comment_list':comment_list,
+        })
+        return context
 
 # def archives(request,year,month):
 #     '''
