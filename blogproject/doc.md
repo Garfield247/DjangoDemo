@@ -2212,3 +2212,182 @@ def get_categories():
 
    
 
+## Django Haystack 全文检索与关键词高亮
+
+1. 配置 Haystack
+
+   ```python
+   INSTALLED_APPS = [
+       'django.contrib.admin',
+       'django.contrib.auth',
+       'django.contrib.contenttypes',
+       'django.contrib.sessions',
+       'django.contrib.messages',
+       'django.contrib.staticfiles',
+       'haystack',
+       'blog',
+       'comments',
+   ]
+   
+   # haystack
+   HAYSTACK_CONNECTIONS = {
+       'default':{
+           'ENGINE':'blog.whoosh_cn_backend.WhooshEngine',
+           'PATH':os.path.join(BASE_DIR,'whoosh_index')
+       }
+   }
+   HAYSTACK_SEARCH_RESULTS_PER_PAGE = 10
+   HAYSTACK_SIGNAL_PROCESSOR = 'haystack.signals.RealtimeSignalProcessor'
+   
+   
+   ```
+
+2. 数据处理`【blog/search_indexes.py】`
+
+   ```python
+   
+   from haystack import indexes
+   from .models import Post
+   
+   class PostIndex(indexes.SearchIndex,indexes.Indexable):
+       text = indexes.CharField(document=True,use_template=True)
+       
+       def get_model(self):
+           return Post
+       
+       def index_queryset(self, using=None):
+           return self.get_model().objects.all()
+   ```
+
+3. 创建数据模板`【templates/search/indexes/blog/post_text.txt】`
+
+   ```tex
+   {{ object.title }}
+   {{ object.body }}
+   ```
+
+4. 配置URL`【blogproject/urls.py】`
+
+   ```python
+   from django.conf.urls import url,include
+   from django.contrib import admin
+   
+   urlpatterns = [
+       url(r'^admin/', admin.site.urls),
+       url(r"^blog/",include("blog.urls")),
+       url(r'^comments/',include('comments.urls')),
+       url(r"^search/",include('haystack.urls'))
+   ]
+   
+   ```
+
+   删除前面简单搜索的`url`配置
+
+   <!--haystack是一个隐藏的应用-->
+
+4. 修改搜索表单
+
+   ```html
+   <div id="header-search-box">
+       <a id="search-menu" href="#"><span id="search-icon" class="ion-ios-search-strong"></span></a>
+       <div id="search-form" class="search-form">
+           <form role="search" method="get" id="searchform" action="{% url 'haystack_search' %}">
+               <input type="search" placeholder="搜索" required>
+               <button type="submit"><span class="ion-ios-search-strong"></span></button>
+           </form>
+       </div>
+   </div>
+   ```
+
+   <!--haystack_search是一个隐藏的路由-->
+
+5. 创建搜索结果页面`【templates/search/search.html】`
+
+   ```html
+   {% extends 'base.html' %}
+   {% load highlight %}
+   {% block main %}
+   {% if query %}
+   {% for result in page.object_list %}
+   <article class="post post-{{ result.object.pk }}">
+       <header class="entry-header">
+           <h1 class="entry-title">
+               <a href="{{ result.object.get_absolute_url }}">{% highlight result.object.title with
+                   query %}</a>
+           </h1>
+           <div class="entry-meta">
+   <span class="post-category">
+   <a href="{% url 'blog:category' result.object.category.pk %}">
+   {{ result.object.category.name }}</a></span>
+               <span class="post-date"><a href="#">
+   <time class="entry-date" datetime="{{ result.object.created_time }}">
+   {{ result.object.created_time }}</time></a></span>
+               <span class="post-author"><a href="#">{{ result.object.author }}</a></span>
+               <span class="comments-link">
+   <a href="{{ result.object.get_absolute_url }}#comment-area">
+   {{ result.object.comment_set.count }} 评论</a></span>
+               <span class="views-count"><a
+                       href="{{ result.object.get_absolute_url }}">{{ result.object.views }} 阅读
+   </a></span>
+           </div>
+       </header>
+       <div class="entry-content clearfix">
+           <p>{% highlight result.object.body with query %}</p>
+           <div class="read-more cl-effect-14">
+               <a href="{{ result.object.get_absolute_url }}" class="more-link">继续阅读 <span
+                       class="meta-nav">→</span></a>
+           </div>
+       </div>
+   </article>
+   {% empty %}
+   <div class="no-post">没有搜索到你想要的结果！</div>
+   {% endfor %}
+   {% if page.has_previous or page.has_next %}
+   <div>
+       {% if page.has_previous %}
+       <a href="?q={{ query }}&amp;page={{ page.previous_page_number }}">{%
+           endif %}&laquo; Previous
+           {% if page.has_previous %}</a>{% endif %}
+       |
+       {% if page.has_next %}<a
+           href="?q={{ query }}&amp;page={{ page.next_page_number }}">{% endif %}Next
+       &raquo;{% if page.has_next %}</a>{% endif %}
+   </div>
+   {% endif %}
+   {% else %}
+   请输入搜索关键词，例如 django
+   {% endif %}
+   {% endblock main %}
+   ```
+
+   <!--【templates/search/search.html】是haystack默认模板位置，自动绑定视图函数-->
+
+6. 关键词高亮`【templates/base.html】`
+
+   ```css
+   <style>
+   	span.highlighted {
+   		color: red;
+   		}
+   </style>
+   ```
+
+7. 修改搜索引擎为jieba
+
+   Whoosh 作为搜索引擎，但在 `django haystack` 中为 Whoosh 指定的分词器是英文分词器，可能会使得搜索结果不理想，我们把这个分词器替换成 `jieba` 中文分词器从你安装的site-packages目录的 haystack 目录中把`haystack/backends/whoosh_backend.py` 文件拷贝到 `blog/` 下，重命名为`whoosh_cn_backend.py`
+
+   ```python
+   from jieba.analyse import ChineseAnalyzer
+   ...
+   #注意先找到这个再修改，而不是直接添加
+   schema_fields[field_class.index_fieldname] = TEXT(stored=True,
+   analyzer=ChineseAnalyzer(),field_boost=field_class.boost, sortable=True)
+   ```
+
+8. 创建索引文件
+
+   ```shell
+    python manage.py rebuild_index
+   ```
+
+   
