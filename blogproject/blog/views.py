@@ -1,3 +1,4 @@
+from django.db.models import Q
 from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponse
 from django.utils.text import slugify
@@ -136,3 +137,16 @@ class TagView(ListView):
     def get_queryset(self):
         tag = get_object_or_404(Tag,pk=self.kwargs.get('pk'))
         return super().get_queryset().filter(tags=tag)
+
+
+def search(request):
+    print(request)
+    q = request.GET.get('q')
+    error_msg = ''
+    if not q:
+        error_msg = "请输入关键词！"
+        return render(request,'blog/index.html',{'error_msg':error_msg})
+
+    post_list = Post.objects.filter(Q(title__icontains=q)|Q(body__icontains=q))
+    print(q,post_list)
+    return render(request,'blog/index.html',{'error_msg':error_msg,'post_list':post_list})
