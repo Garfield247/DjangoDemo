@@ -2157,3 +2157,58 @@ def get_categories():
 
      `<http://127.0.0.1:8000/blog/post/4/#一级标题>`
 
+## 简单全文搜索
+
+1. 修改`【base.html】`
+
+   ```html
+   <div id="header-search-box">
+       <a id="search-menu" href="#"><span id="search-icon" class="ion-ios-search-strong"></span></a>
+       <div id="search-form" class="search-form">
+           <form role="search" method="get" id="searchform" action="{% url 'blog:search' %}">
+               <input type="search" placeholder="搜索" required>
+               <button type="submit"><span class="ion-ios-search-strong"></span></button>
+           </form>
+       </div>
+   </div>
+   ```
+
+   
+
+2. 编写搜索功能的视图函数`【blog/views.py】`
+
+   ```python
+   from django.db.models import Q
+   
+   def search(request):
+       q = request.get('q')
+       error_msg = ''
+       if not q:
+           error_msg = "请输入关键词！"
+           return render(request,'blog/index.html',{'error_msg':error_msg})
+       
+       post_list = Post.objects.filter(title__icontains=q)|Q(body_icontains=0)
+       return render(request,'blog/index.html',{'error_msg':error_msg,'post_list':post_list})
+   ```
+
+3. 渲染搜索结果
+
+   其实就是添加`error_msg`模板变量
+
+   ```html
+   {% extends 'base.html' %}
+   {% block main %}
+   {% if error_msg %}
+       <p>{{ error_msg }}</p>
+   {% endif %}
+   {% for post in post_list %}
+   ```
+
+4. 绑定url
+
+   ```python
+   url(r"search/$",views.search,name="search"),
+   ```
+
+   
+
