@@ -865,3 +865,102 @@ templates/users/register.html
 **注意：**在注册视图函数中，对 next 的任意值我们都进行了跳转，这可能导致一些安全问题。正确的做法应该是在跳转前，对需要跳转的 URL 做安全性检查。不过这里只作为一个示例，在实际项目中请仔细考虑可能的安全后果，以及添加必要的安全性检查代码。
 
 OK，如此修改以后，用户的登录、注册和注销流程的用户体验可以形成一个比较良好闭环了。接下来就来实现修改密码的功能。
+
+## 修改密码
+
+再此之前我们已经完成了用户登录、注册、注销等功能，接下来让我们继续为用户提供修改密码的功能。该功能 Django 的 auth 应用也已经为我们提供，过程几乎和之前的登录功能完全一样。
+
+### 编写修改密码模板
+
+修改密码的的视图函数默认渲染的模板名为 `password_change_form.html`，因此首先在 registration/ 下新建一个 `password_change_form.html` 文件，写入表单代码（几乎和登录页面一样），在此就不做过多解释了，具体请参考 [Django 用户认证系统：登录](http://zmrenwu.com/post/46/) 部分的说明。
+
+```html
+templates/registration/password_change_form.html
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>修改密码</title>
+    <link rel="stylesheet" href="https://unpkg.com/mobi.css/dist/mobi.min.css">
+    <style>
+        .errorlist {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+<div class="flex-center">
+    <div class="container">
+        <div class="flex-center">
+            <div class="unit-1-2 unit-1-on-mobile">
+                <h1><a href="{% url 'index' %}">Django Auth Example</a></h1>
+                <h3>修改密码</h3>
+                <form class="form" action="{% url 'password_change' %}" method="post">
+                    {% csrf_token %}
+                    {{ form.non_field_errors }}
+                    {% for field in form %}
+                        {{ field.label_tag }}
+                        {{ field }}
+                        {{ field.errors }}
+                        {% if field.help_text %}
+                            <p class="help text-small text-muted">{{ field.help_text|safe }}</p>
+                        {% endif %}
+                    {% endfor %}
+                    <button type="submit" class="btn btn-primary btn-block">确认修改</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
+```
+
+此外，在首页加一个修改密码的按钮，并且注意只对已登录用户显示：
+
+```html
+templates/index.html
+
+{% if user.is_authenticated %}
+  <p>你已登录，欢迎你：<a href="#">{{ user.username }}</a></p>
+  <button class="btn btn-default"><a href="{% url 'logout' %}?next={{ request.path }}">注销登录</a>
+  </button>
+  <button class="btn btn-default"><a href="{% url 'password_change' %}?next={{ request.path }}">修改密码</a>
+  </button>
+{% else %}
+```
+
+## 编写密码修改成功页面模板
+
+密码修改成功后，`Django` 会把用户跳转到密码修改成功页面，该页面渲染的模板为 `password_change_done.html`，因此再添加一个密码修改成功页面的模板：
+
+```html
+templates/registration/password_change_done.html
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>密码修改成功</title>
+    <link rel="stylesheet" href="https://unpkg.com/mobi.css/dist/mobi.min.css">
+</head>
+<body>
+<div class="flex-center">
+    <div class="container">
+        <div>
+            <h1 class="logo"><a href="{% url 'index' %}">Django Auth Example</a></h1>
+            <p>密码修改成功！</p>
+        </div>
+    </div>
+</div>
+</body>
+</html>
+```
+
+OK，修改密码的功能就完成了。流程为已登录用户点击主页的修改密码按钮跳转到修改密码页面，修改密码成功后跳转到修改成功页面。
+
