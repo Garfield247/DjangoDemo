@@ -5,6 +5,7 @@ from django.db import models
 
 class User(AbstractUser):
     nickname = models.CharField(max_length=150,blank=True)
+    email = models.EmailField(unique=True)
 
     class Meta(AbstractUser.Meta):
         pass
