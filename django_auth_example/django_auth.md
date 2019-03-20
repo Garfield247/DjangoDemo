@@ -1197,3 +1197,89 @@ http://127.0.0.1:8000/users/reset/NA/4n8-64ab7ff92254d18c6b15/
 #### 新密码设置成功
 
 点击提交后将跳转到新密码设置成功页面，现在便可以用新设置的密码登录了。
+
+## 自定义认证后台
+
+Django auth 应用默认支持用户名（username）进行登录。但是在实践中，网站可能还需要邮箱、手机号、身份证号等进行登录，这就需要我们自己写一个认证后台，用于验证用户输入的用户信息是否正确，从而对拥有正确凭据的用户进行登录认证。
+
+### Django 验证用户合法性的方式
+
+Django 对用户登录的验证工作均在一个被称作认证后台（Authentication Backend）的类中进行。这个类是一个普通的 Python 类，它有一个 `authenticate` 方法，接收登录用户提供的凭据（如用户名或者邮箱以及密码）作为参数，并根据这些凭据判断用户是否合法（即是否是已注册用户，密码是否正确等）。下面是 Django 内置的认证后台的部分源代码，从代码中可以清晰地看到其工作方式：
+
+```python
+django.contrib.auth.backends
+
+class ModelBackend(object):
+    """
+    Authenticates against settings.AUTH_USER_MODEL.
+    """
+
+    def authenticate(self, request, username=None, password=None, **kwargs):
+        if username is None:
+            username = kwargs.get(UserModel.USERNAME_FIELD)
+        try:
+            user = UserModel._default_manager.get_by_natural_key(username)
+        except UserModel.DoesNotExist:
+            # Run the default password hasher once to reduce the timing
+            # difference between an existing and a non-existing user (#20760).
+            UserModel().set_password(password)
+        else:
+            if user.check_password(password) and self.user_can_authenticate(user):
+                return user
+```
+
+这段代码根据用户传入的 username 和 password，验证该 username 对应的用户是否存在以及密码是否正确，是则返回该 user 对象。
+
+可以定义多个认证后台，Django 内部会逐一调用这些后台的 `authenticate` 方法来验证用户提供登录凭据的合法性，一旦通过某个后台的验证，表明用户提供的凭据合法，从而允许登录该用户。
+
+### Email Backend
+
+在本示例项目中，用户注册时需要填写邮箱。因为 Django auth 应用内置只支持用户名和密码的认证方式，所以目前用户是无法使用 Email 进行登录的。为了实现邮箱登录，我们需要编写一个认证后台。这个后台的作用便是验证用户提供的凭据（这里是邮箱以及密码）是合法的，完全仿照内置的 `ModelBackend` 代码即可。首先在 users 应用下新建一个 backends.py 文件，然后写入如下代码：
+
+```python
+users/backends.py
+
+from .models import User
+
+class EmailBackend(object):
+    def authenticate(self, request, **credentials):
+        # 要注意登录表单中用户输入的用户名或者邮箱的 field 名均为 username
+        email = credentials.get('email', credentials.get('username'))
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            pass
+        else:
+            if user.check_password(credentials["password"]):
+                return user
+
+    def get_user(self, user_id):
+        """
+        该方法是必须的
+        """
+        try:
+            return User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            return None
+```
+
+逻辑非常简单，就是根据用户提供的 Email 和密码，检查该 emai 对应的用户是否存在，如果存在则检查密码是否正确，如果密码也没有问题，则返回该 user 对象。
+
+### 配置 Backend
+
+接下来就要告诉 Django，需要使用哪些 Backends 对用户的凭据信息进行验证，这需要在 settings.py 中设置：
+
+```python
+settings.py
+
+AUTHENTICATION_BACKENDS = (
+    'django.contrib.auth.backends.ModelBackend',
+    'users.backends.EmailBackend',
+)
+```
+
+第一个 Backend 是 Django 内置的 Backend，当用户提供的是用户名和正确的密码时该 Backend 会通过验证；第二个 Backend 是刚刚自定义的 Backend，当用户提供的是 Email 和正确的密码时该 Backend 会通过验证。
+
+### 测试
+
+在登录界面输入注册时的邮箱和正确的密码，可以发现也可以登录成功了，说明我们自定义的 `Backend` 是有效的。大功告成！
